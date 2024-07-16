@@ -28,8 +28,8 @@ It would be really helpful if you can send [PR](https://github.com/UltraForensic
 
 ## Special Thanks
 
-This software uses [notatin](https://github.com/strozfriedberg/notatin) as Windows registry file parser.
-Thank you very much for making this work and publishing.
+This software uses [notatin](https://github.com/strozfriedberg/notatin) to parse Windows registry file.
+Thank you very much for making this amazing work.
 
 ## Copyright
 
