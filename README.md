@@ -1,5 +1,7 @@
 # regscan
 
+- Uses [notatin](https://github.com/strozfriedberg/notatin) as a Windows registry file parser
+
 ## Usage
 
 ```
@@ -12,3 +14,8 @@ Options:
   -s, --stdout        Output the results also to the standard output.
   -h, --help          Print help
 ```
+
+
+## Copyright
+
+Copyright 2024 Naoki Takayama. regscan is licensed under the Apache License, Version 2.0.
