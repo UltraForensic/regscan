@@ -84,17 +84,18 @@ fn main() {
                     } else if f.contains("NTUSER") {
                         println!("[*] Loaded {} as a NTUSER hive", f);
 
-                        match scanner::ntuser::sysinternals::scan(&mut parser, &f) {
-                            Some(t) => { results.push(t); },
-                            None => {}
-                        }
-                        match scanner::ntuser::sevenzip::scan(&mut parser, &f) {
-                            Some(t) => { results.push(t); },
-                            None => {}
-                        }
-                        match scanner::ntuser::gpo_history::scan(&mut parser, &f) {
-                            Some(t) => { results.push(t); },
-                            None => {}
+                        let scanners = [
+                            scanner::ntuser::sysinternals::scan,
+                            scanner::ntuser::sevenzip::scan, 
+                            scanner::ntuser::gpo_history::scan,
+                            scanner::ntuser::putty::scan
+                        ];
+
+                        for s in scanners {
+                            match s(&mut parser, &f) {
+                                Some(t) => { results.push(t); },
+                                None => {}
+                            }
                         }
                     } else if f.contains("UsrClass") {
                         println!("[*] Loaded {} as a UsrClass hive", f);
