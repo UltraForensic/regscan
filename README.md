@@ -1,6 +1,6 @@
 # regscan
 
-Registry scanner for Windows forensic investigation
+Windows registry file scanner to detect any malicious or suspicious indicator
 
 ## Usage
 
@@ -24,7 +24,7 @@ But you may try it out by running or building binary by your own.
 
 Contribution is always welcome!
 This is almost my first project that uses Rust, and I guess my coding / design pattern is horrible.
-Please feel free to send [PR](https://github.com/UltraForensic/regscan/pulls) or create an [issue](https://github.com/UltraForensic/regscan/issues) to make this project better.
+It would be really helpful if you can send [PR](https://github.com/UltraForensic/regscan/pulls) or create an [issue](https://github.com/UltraForensic/regscan/issues) to make this project better.
 
 ## Special Thanks
 
