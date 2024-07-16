@@ -12,7 +12,7 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                     for skey in sub_keys {
                         let last_key_write_timestamp = get_date_time_from_filetime(skey.detail.last_key_written_date_and_time());
 
-                        results.push(format!("sysinternals,SysInternals {} use has been detected,{},{},{}", skey.key_name, target, key_path, last_key_write_timestamp));
+                        results.push(format!("sysinternals\tSysInternals {} use has been detected\t{}\t{}\t{}", skey.key_name, target, key_path, last_key_write_timestamp));
                     }
 
                     Some(results.join("\n"))

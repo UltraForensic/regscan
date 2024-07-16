@@ -12,13 +12,13 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                 match key.get_value("Path") {
                     None => {},
                     Some(k) => {
-                        results.push(format!("sevenzip,7-Zip is installed at {},{},{},{}", k.get_content().0, target, key_path, last_key_write_timestamp));
+                        results.push(format!("sevenzip\t7-Zip is installed at {}\t{}\t{}\t{}", k.get_content().0, target, key_path, last_key_write_timestamp));
                     }
                 }
                 match key.get_value("Path64") {
                     None => {},
                     Some(k) => {
-                        results.push(format!("sevenzip,7-Zip is installed at {} (64-bit),{},{},{}", k.get_content().0, target, key_path, last_key_write_timestamp));
+                        results.push(format!("sevenzip\t7-Zip is installed at {} (64-bit)\t{}\t{}\t{}", k.get_content().0, target, key_path, last_key_write_timestamp));
                     }
                 }
             },

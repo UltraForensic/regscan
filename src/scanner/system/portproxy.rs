@@ -10,7 +10,7 @@ pub fn scan(parser: &mut Parser, target: &String, controlset: u32) ->  Option<St
 
                     let mut results: Vec<String> = Vec::new();
                     for value in key.value_iter() {
-                        results.push(format!("portproxy,Packets to {} will be transferred to {},{},{},{}", value.detail.value_name(), value.get_content().0, target, key_path, last_key_write_timestamp));
+                        results.push(format!("portproxy\tPackets to {} will be transferred to {}\t{}\t{}\t{}", value.detail.value_name(), value.get_content().0, target, key_path, last_key_write_timestamp));
                     }
                     Some(results.join("\n"))
                 }

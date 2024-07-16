@@ -9,13 +9,13 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
             match r {
                 Some(mut key) => {
                     let mut last_key_write_timestamp = get_date_time_from_filetime(key.detail.last_key_written_date_and_time());
-                    results.push(format!("putty,PuTTY has been used by this user,{},{},{}", target, key_path, last_key_write_timestamp));
+                    results.push(format!("putty\tPuTTY has been used by this user\t{}\t{}\t{}", target, key_path, last_key_write_timestamp));
 
                     match key.get_sub_key_by_path(parser, "SshHostKeys") {
                         Some(subkey) => {
                             last_key_write_timestamp = get_date_time_from_filetime(subkey.detail.last_key_written_date_and_time());
                             for v in subkey.value_iter() {
-                                results.push(format!("putty,SshHostKeys: {} -> {},{},{},{}", v.detail.value_name(), v.get_content().0, target, key_path, last_key_write_timestamp));
+                                results.push(format!("putty\tSshHostKeys: {} -> {}\t{}\t{}\t{}", v.detail.value_name(), v.get_content().0, target, key_path, last_key_write_timestamp));
                             }
                         },
                         None => {}

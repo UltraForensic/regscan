@@ -10,8 +10,8 @@ use std::io::Write;
 struct Args {
     #[arg(short = 'd', long = "dir", help = "Target directory containing registry hive and transaction log files to process.")]
     target: String,
-    #[arg(short, long, help = "File name to save CSV formatted results to.")]
-    csv: String,
+    #[arg(short, long, help = "File name to save TSV formatted results to.")]
+    tsv: String,
     #[arg(short, long, help = "Recover deleted entry and analyze (this option might need extra time to process).")]
     recover: bool,
     #[arg(short, long, help = "Output the results also to the standard output.")]
@@ -22,7 +22,7 @@ fn main() {
     let args = Args::parse();
     let mut results: Vec<String> = Vec::new();
 
-    results.push(String::from("Rule name,Detail,Hive,Key,Last write timestamp of the key"));
+    results.push(String::from("Rule name\tDetail\tHive\tKey\tLast write timestamp of the key"));
 
     let target_files = fs::read_dir(args.target).unwrap();
     for entry in target_files {
@@ -121,20 +121,20 @@ fn main() {
         }
     }
 
-    match File::create(&args.csv) {
+    match File::create(&args.tsv) {
         Ok(mut f) => {
             match writeln!(f, "{}", results.join("\n")) {
                 Ok(_t) => {
-                    println!("[+] Successfully analyzed registry hive files and saved results to {}", args.csv);
+                    println!("[+] Successfully analyzed registry hive files and saved results to {}", args.tsv);
                 },
                 Err(u) => {
-                    println!("[-] Failed to write results to {}", args.csv);
+                    println!("[-] Failed to write results to {}", args.tsv);
                     println!("[-] {}", u)
                 }
             }
         },
         Err(e) => {
-            println!("[-] Failed to open file {}", args.csv);
+            println!("[-] Failed to open file {}", args.tsv);
             println!("[-] {}", e)
         }
     }
