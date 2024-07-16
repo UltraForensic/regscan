@@ -23,8 +23,7 @@ But you may try it out by running or building binary by your own.
 ## Contribution
 
 Contribution is always welcome!
-This is almost my first project that uses Rust, and I guess my coding / design pattern is horrible.
-It would be really helpful if you can send [PR](https://github.com/UltraForensic/regscan/pulls) or create an [issue](https://github.com/UltraForensic/regscan/issues) to make this project better.
+Please feel free to create a [pull request](https://github.com/UltraForensic/regscan/pulls) or [issue](https://github.com/UltraForensic/regscan/issues) to make this project better.
 
 ## Special Thanks
 
