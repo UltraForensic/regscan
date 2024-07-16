@@ -77,7 +77,8 @@ fn main() {
                         println!("[!] RegisteredOwner: {}", basic_info[7]);
                         
                         let scanners = [
-                            scanner::software::gpo_history::scan
+                            scanner::software::software_gpo_history::scan,
+                            scanner::software::software_run::scan
                         ];
 
                         for s in scanners {
@@ -100,8 +101,9 @@ fn main() {
                         let scanners = [
                             scanner::ntuser::sysinternals::scan,
                             scanner::ntuser::sevenzip::scan, 
-                            scanner::ntuser::gpo_history::scan,
-                            scanner::ntuser::putty::scan
+                            scanner::ntuser::ntuser_gpo_history::scan,
+                            scanner::ntuser::putty::scan,
+                            scanner::ntuser::ntuser_run::scan
                         ];
 
                         for s in scanners {
