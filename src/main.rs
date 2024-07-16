@@ -47,15 +47,18 @@ fn main() {
                             },
                             None => {}
                         }
+
+                        let scanners = [
+                            scanner::system::wdigest::scan,
+                            scanner::system::portproxy::scan
+                        ];
         
                         for controlset in controlsets {
-                            match scanner::system::wdigest::scan(&mut parser, &f, controlset) {
-                                Some(t) => { results.push(t); },
-                                None => {}
-                            }
-                            match scanner::system::portproxy::scan(&mut parser, &f, controlset) {
-                                Some(t) => { results.push(t); },
-                                None => {}
+                            for s in scanners {
+                                match s(&mut parser, &f, controlset) {
+                                    Some(t) => { results.push(t); },
+                                    None => {}
+                                }
                             }
                         }
                     } else if f.contains("SOFTWARE") {
@@ -69,9 +72,15 @@ fn main() {
                         println!("[!] RegisteredOrganization: {}", basic_info[6]);
                         println!("[!] RegisteredOwner: {}", basic_info[7]);
                         
-                        match scanner::software::gpo_history::scan(&mut parser, &f) {
-                            Some(t) => { results.push(t); },
-                            None => {}
+                        let scanners = [
+                            scanner::software::gpo_history::scan
+                        ];
+
+                        for s in scanners {
+                            match s(&mut parser, &f) {
+                                Some(t) => { results.push(t); },
+                                None => {}
+                            }
                         }
                     } else if f.contains("Amcache") {
                         println!("[*] Loaded {} as a Amcache hive", f);
