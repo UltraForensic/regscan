@@ -11,7 +11,7 @@ pub fn scan(parser: &mut Parser, target: &String, controlset: u32) ->  Option<St
             match k.get_content().0 {
                 CellValue::U32(v) => {
                     // Alerts even if data of value `UseLogonCredential` is other than 1
-                    Some(format!("wdigest,UseLogonCredential = {},{},{},{}", v, target, key_path, last_key_write_timestamp))
+                    Some(format!("wdigest\tUseLogonCredential = {}\t{}\t{}\t{}", v, target, key_path, last_key_write_timestamp))
                 },
                 _ => None
             }
