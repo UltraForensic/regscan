@@ -4,6 +4,8 @@
 
 ## Usage
 
+Download built Windows binary from [Releases](https://github.com/UltraForensic/regscan/releases) page.
+
 ```
 Usage: regscan.exe [OPTIONS] --dir <TARGET> --csv <CSV>
 
