@@ -34,6 +34,10 @@ fn main() {
                     if f.contains("SYSTEM") {
                         println!("[*] Loaded {} as a SYSTEM hive", f);
 
+                        let basic_info = scanner::system::initial::get_basic_info(&mut parser);
+                        println!("[!] ComputerName: {}", basic_info[0]);
+                        println!("[!] TimeZoneKeyName: {}", basic_info[1]);
+
                         let mut controlsets = Vec::new();
                         match parser.get_key("ControlSet001", false).unwrap() {
                             Some(_t) => {
