@@ -78,7 +78,8 @@ fn main() {
                         
                         let scanners = [
                             scanner::software::software_gpo_history::scan,
-                            scanner::software::software_run::scan
+                            scanner::software::software_run::scan,
+                            scanner::software::defender::scan
                         ];
 
                         for s in scanners {
