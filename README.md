@@ -1,6 +1,6 @@
 # regscan
 
-Windows registry file scanner to detect any malicious or suspicious indicator
+Windows registry file scanner for fast forensics
 
 ## Usage
 
