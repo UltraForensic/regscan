@@ -82,6 +82,27 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                         }
                     }
 
+                    let rtprotection_path = "Microsoft\\Windows Defender\\Real-Time Protection";
+                    match parser.get_key(rtprotection_path, false) {
+                        Ok(ockn) => {
+                            match ockn {
+                                Some(key) => {
+                                    let last_key_write_timestamp = get_date_time_from_filetime(key.detail.last_key_written_date_and_time());
+                                    match key.get_value("DisableRealtimeMonitoring") {
+                                        Some(v) => {
+                                            if v.get_content().0 == CellValue::U32(1) {
+                                                results.push(format!("defender\tReal-Time Protection is disabled\t{}\t{}\t{}", target, rtprotection_path, last_key_write_timestamp));
+                                            }
+                                        },
+                                        None => {}
+                                    }
+                                },
+                                None => {}
+                            }
+                        },
+                        Err(_e) => {}
+                    }
+
                     if results.len() != 0 {
                         Some(results.join("\n"))
                     } else {
