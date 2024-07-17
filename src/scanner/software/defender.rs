@@ -1,4 +1,4 @@
-use notatin::{parser::Parser, util::get_date_time_from_filetime};
+use notatin::{parser::Parser, cell_value::CellValue, util::get_date_time_from_filetime};
 
 pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
     let key_path = "Microsoft\\Windows Defender";
@@ -20,6 +20,66 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                             }
                         },
                         None => {}
+                    }
+
+                    match key.get_sub_key_by_path(parser, "Features") {
+                        Some(sub_key) => {
+                            let last_key_write_timestamp = get_date_time_from_filetime(sub_key.detail.last_key_written_date_and_time());
+                            match sub_key.get_value("TamperProtection") {
+                                Some(v) => {
+                                    match v.get_content().0 {
+                                        CellValue::U32(0) => { results.push(format!("defender\tWindows Defender Tamper Protection is disabled (TamperProtection={})\t{}\t{}\t{}", v.get_content().0, target, key_path, last_key_write_timestamp)); },
+                                        CellValue::U32(4) => { results.push(format!("defender\tWindows Defender Tamper Protection and Cloud Protection is disabled (TamperProtection={})\t{}\t{}\t{}", v.get_content().0, target, key_path, last_key_write_timestamp)); }
+                                        _ => {}
+                                    }
+                                },
+                                None => {}
+                            }
+                        },
+                        None => {}
+                    }
+
+                    match key.get_sub_key_by_path(parser, "Features\\Controls") {
+                        Some(sub_key) => {
+                            let mut cnt = 0;
+                            let last_key_write_timestamp = get_date_time_from_filetime(sub_key.detail.last_key_written_date_and_time());
+                            for _v in sub_key.value_iter() { cnt += 1; }
+                            if cnt == 0 {
+                                results.push(format!("defender\tSignature may have been removed from Windows Defender\t{}\t{}\t{}", target, key_path, last_key_write_timestamp));
+                            }
+                        },
+                        None => {}
+                    }
+
+                    let policy_paths = ["Microsoft\\Windows Defender", "Policies\\Microsoft\\Windows Defender"];
+                    let values = ["DisableAntiSpyware", "DisableAntiVirus"];
+                    for pp in policy_paths {
+                        match parser.get_key(pp, false) {
+                            Ok(ockn) => {
+                                match ockn {
+                                    Some(pkey) => {
+                                        let last_key_write_timestamp = get_date_time_from_filetime(pkey.detail.last_key_written_date_and_time());
+                                        for sv in values {
+                                            match pkey.get_value(sv) {
+                                                Some(v) => {
+                                                    match v.get_content().0 {
+                                                        CellValue::U32(i) => {
+                                                            if i != 0 {
+                                                                results.push(format!("defender\t{} = {}\t{}\t{}\t{}", sv, i, target, pp, last_key_write_timestamp));
+                                                            }
+                                                        },
+                                                        _ => {}
+                                                    }
+                                                },
+                                                None => {}
+                                            }
+                                        }
+                                    },
+                                    None => {}
+                                }
+                            },
+                            Err(_e) => {}
+                        }
                     }
 
                     if results.len() != 0 {
