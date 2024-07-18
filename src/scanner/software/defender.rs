@@ -92,6 +92,8 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                                         Some(v) => {
                                             if v.get_content().0 == CellValue::U32(1) {
                                                 results.push(format!("defender\tReal-Time Protection is disabled\t{}\t{}\t{}", target, rtprotection_path, last_key_write_timestamp));
+                                            } else {
+                                                results.push(format!("defender\tDisableRealtimeMonitoring = {} (Real-Time Protection may have been disabled previously)\t{}\t{}\t{}", v.get_content().0, target, rtprotection_path, last_key_write_timestamp));
                                             }
                                         },
                                         None => {}
