@@ -50,7 +50,7 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                                     },
                                     Err(_e) => {}
                                 }
-                                results.push(format!("taskcache\tTaskCache {} found (GUID: \"{}\")\t{}\t{}\\{}\t{}", skey.key_name, v.get_content().0, target, key_path, skey.key_name, last_key_write_timestamp));
+                                results.push(format!("taskcache\tTaskCache \"{}\" found (GUID: \"{}\")\t{}\t{}\\{}\t{}", skey.key_name, v.get_content().0, target, key_path, skey.key_name, last_key_write_timestamp));
                             },
                             None => {}
                         }
