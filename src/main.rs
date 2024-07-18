@@ -14,6 +14,8 @@ struct Args {
     target: String,
     #[arg(short, long, help = "File name to save TSV formatted results to.")]
     tsv: String,
+    #[arg(short, long, help = "Disable automatic filter on some rule (eg. services) and output all results")]
+    noisy: bool,
     #[arg(short, long, help = "Recover deleted entry and analyze (this option might need extra time to process).")]
     recover: bool,
     #[arg(short, long, help = "Output the results also to the standard output.")]
@@ -67,6 +69,10 @@ fn main() {
                                     Some(t) => { results.push(t); },
                                     None => {}
                                 }
+                            }
+                            match scanner::system::services::scan(&mut parser, &f, controlset, args.noisy) {
+                                Some(t) => { results.push(t); },
+                                None => {}
                             }
                         }
                     } else if f.contains("SOFTWARE") {

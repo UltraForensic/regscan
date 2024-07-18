@@ -12,6 +12,7 @@ Usage: regscan.exe [OPTIONS] --dir <TARGET> --tsv <TSV>
 Options:
   -d, --dir <TARGET>  Target directory containing registry hive and transaction log files to process.
   -t, --tsv <TSV>     File name to save TSV formatted results to.
+  -n, --noisy         Disable automatic filter on some rule (eg. services) and output all results
   -r, --recover       Recover deleted entry and analyze (this option might need extra time to process).
   -s, --stdout        Output the results also to the standard output.
   -h, --help          Print help
