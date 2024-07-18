@@ -17,7 +17,7 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                             let link = skey2.get_value("Link").unwrap().get_content().0;
                             let last_key_write_timestamp = get_date_time_from_filetime(skey.detail.last_key_written_date_and_time());
 
-                            results.push(format!("software_gpohistory\tGPO history has been found (DisplayName: \"{}\", FileSysPath: \"{}\", Link: \"{}\")\t{}\t{}\t{}", displayname, filesyspath, link, target, key_path, last_key_write_timestamp));
+                            results.push(format!("software_gpohistory\tGPO history found (DisplayName: \"{}\", FileSysPath: \"{}\", Link: \"{}\")\t{}\t{}\t{}", displayname, filesyspath, link, target, key_path, last_key_write_timestamp));
                         }
                     }
 

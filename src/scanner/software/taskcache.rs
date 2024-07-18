@@ -17,10 +17,10 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                                     Ok(r2) => {
                                         match r2 {
                                             Some(key2) => {
-                                                let mut result_str = format!("taskcache\tTaskCache {} found (", skey.key_name);
+                                                let mut result_str = format!("taskcache\tTaskCache {} found (GUID: {}, ", skey.key_name, v.get_content().0);
                                                 match key2.get_value("Path") {
                                                     Some(path) => {
-                                                        result_str = format!("{}path = \"{}\", ", result_str, path.get_content().0);
+                                                        result_str = format!("{}Path = \"{}\", ", result_str, path.get_content().0);
                                                     },
                                                     None => {}
                                                 }
