@@ -11,7 +11,7 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
 
                     for skey in sub_keys {
                         let last_key_write_timestamp = get_date_time_from_filetime(skey.detail.last_key_written_date_and_time());
-                        results.push(format!("taskcache\tTaskCahce {} found\t{}\t{}\\{}\t{}", skey.key_name, target, key_path, skey.key_name, last_key_write_timestamp));
+                        results.push(format!("taskcache\tTaskCache {} found\t{}\t{}\\{}\t{}", skey.key_name, target, key_path, skey.key_name, last_key_write_timestamp));
                     }
 
                     if results.len() != 0 {
