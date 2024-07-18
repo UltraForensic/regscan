@@ -6,6 +6,8 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[derive(Debug, Parser)]
 struct Args {
     #[arg(short = 'd', long = "dir", help = "Target directory containing registry hive and transaction log files to process.")]
@@ -21,6 +23,8 @@ struct Args {
 fn main() {
     let args = Args::parse();
     let mut results: Vec<String> = Vec::new();
+
+    println!("[!] regscan v{} started", VERSION);
 
     results.push(String::from("Rule name\tDetail\tHive\tKey\tLast write timestamp of the key"));
 
