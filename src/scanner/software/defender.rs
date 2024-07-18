@@ -15,7 +15,7 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                             for ssk in subsub_keys {
                                 let last_key_write_timestamp = get_date_time_from_filetime(ssk.detail.last_key_written_date_and_time());
                                 for v in ssk.value_iter() {
-                                    results.push(format!("defender\tWindows Defender {} exclusion setting found -> {}\t{}\t{}\t{}", ssk.key_name, v.detail.value_name(), target, key_path, last_key_write_timestamp));
+                                    results.push(format!("defender\tWindows Defender {} exclusion setting found: \"{}\"\t{}\t{}\t{}", ssk.key_name, v.detail.value_name(), target, key_path, last_key_write_timestamp));
                                 }
                             }
                         },

@@ -17,7 +17,7 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                                     chars.next_back();
                                     chars.next_back();
                                     let last_key_write_timestamp = get_date_time_from_filetime(key.detail.last_key_written_date_and_time());
-                                    results.push(format!("runmru\tRunMRU record found: {}\t{}\t{}\t{}", chars.as_str(), target, key_path, last_key_write_timestamp));
+                                    results.push(format!("runmru\tRunMRU record found: \"{}\"\t{}\t{}\t{}", chars.as_str(), target, key_path, last_key_write_timestamp));
                                 },
                                 _ => {
                                     println!("[-] Weird value inside RunMRU record: {:?}", v.get_content().0);
