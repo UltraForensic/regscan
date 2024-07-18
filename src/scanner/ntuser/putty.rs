@@ -21,7 +21,11 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                         None => {}
                     }
 
-                    Some(results.join("\n"))
+                    if results.len() != 0 {
+                        Some(results.join("\n"))
+                    } else {
+                        None
+                    }
                 },
                 None => None
             }
