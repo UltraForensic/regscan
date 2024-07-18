@@ -1,5 +1,6 @@
 Cargo.lock
 tmp_output.tsv
+.~lock.tmp_output.tsv#
 
 /target
 /test_data
