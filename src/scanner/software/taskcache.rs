@@ -17,7 +17,7 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                                     Ok(r2) => {
                                         match r2 {
                                             Some(key2) => {
-                                                let mut result_str = format!("taskcache\tTaskCache {} found (GUID: {}, ", skey.key_name, v.get_content().0);
+                                                let mut result_str = format!("taskcache\tTaskCache {} found (GUID: \"{}\", ", skey.key_name, v.get_content().0);
                                                 match key2.get_value("Path") {
                                                     Some(path) => {
                                                         result_str = format!("{}Path = \"{}\", ", result_str, path.get_content().0);
@@ -50,10 +50,10 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                                     },
                                     Err(_e) => {}
                                 }
+                                results.push(format!("taskcache\tTaskCache {} found (GUID: \"{}\")\t{}\t{}\\{}\t{}", skey.key_name, v.get_content().0, target, key_path, skey.key_name, last_key_write_timestamp));
                             },
                             None => {}
                         }
-                        results.push(format!("taskcache\tTaskCache {} found\t{}\t{}\\{}\t{}", skey.key_name, target, key_path, skey.key_name, last_key_write_timestamp));
                     }
 
                     if results.len() != 0 {
