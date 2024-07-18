@@ -109,7 +109,8 @@ fn main() {
                             scanner::ntuser::sevenzip::scan, 
                             scanner::ntuser::ntuser_gpohistory::scan,
                             scanner::ntuser::putty::scan,
-                            scanner::ntuser::ntuser_run::scan
+                            scanner::ntuser::ntuser_run::scan,
+                            scanner::ntuser::runmru::scan
                         ];
 
                         for s in scanners {
