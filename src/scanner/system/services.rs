@@ -60,8 +60,19 @@ pub fn scan(parser: &mut Parser, target: &String, controlset: u32, noisy: bool) 
                             },
                             None => "Unknown"
                         };
+                        let description = match skey.get_value("Description") {
+                            Some(v) => {
+                                match v.get_content().0 {
+                                    CellValue::String(s) => {
+                                        &s.clone()
+                                    },
+                                    _ => "Unknown"
+                                }
+                            },
+                            None => "Unknown"
+                        };
                         if noisy || servicetype.contains("Win32OwnProcess") {
-                            results.push(format!("services\tService \"{}\" has been created or updated (Type: \"{}\", Start: \"{}\", ImagePath: \"{}\")\t{}\t{}\\{}\t{}", skey.key_name, servicetype, starttype, imagepath, target, key_path, skey.key_name, last_key_write_timestamp));
+                            results.push(format!("services\tService \"{}\" has been created or updated (Type: \"{}\", Start: \"{}\", ImagePath: \"{}\", Description: \"\")\t{}\t{}\\{}\t{}", skey.key_name, servicetype, starttype, imagepath, description, target, key_path, skey.key_name, last_key_write_timestamp));
                         }
                     }
 
