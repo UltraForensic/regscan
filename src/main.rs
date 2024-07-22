@@ -98,10 +98,12 @@ fn main() {
                         let timeline_scanners = [
                             scanner::software::software_gpohistory::generate_timeline,
                             scanner::software::defender::generate_timeline,
-                            scanner::software::taskcache::generate_timeline
+                            scanner::software::taskcache::generate_timeline,
+                            scanner::software::startupscripts::generate_timeline
                         ];
                         let asep_scanners = [
-                            scanner::software::software_run::get_asep
+                            scanner::software::software_run::get_asep,
+                            scanner::software::startupscripts::get_asep
                         ];
 
                         for s in timeline_scanners {
