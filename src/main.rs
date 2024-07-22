@@ -83,6 +83,10 @@ fn main() {
                                 Some(t) => { asep_results.push(t); },
                                 None => {}
                             }
+                            match scanner::system::portproxy::get_portproxy(&mut parser, controlset) {
+                                Some(t) => { systeminfo.push(t); },
+                                None => {}
+                            }
                         }
                     } else if f.contains("SOFTWARE") {
                         println!("[*] Loaded {} as a SOFTWARE hive", f);
