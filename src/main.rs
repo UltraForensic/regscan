@@ -133,10 +133,12 @@ fn main() {
                             scanner::ntuser::sysinternals::generate_timeline,
                             scanner::ntuser::sevenzip::generate_timeline, 
                             scanner::ntuser::ntuser_gpohistory::generate_timeline,
-                            scanner::ntuser::putty::generate_timeline
+                            scanner::ntuser::putty::generate_timeline,
+                            scanner::ntuser::logonscripts::generate_timeline
                         ];
                         let asep_scanners = [
-                            scanner::ntuser::ntuser_run::get_asep
+                            scanner::ntuser::ntuser_run::get_asep,
+                            scanner::ntuser::logonscripts::get_asep
                         ];
 
                         for s in timeline_scanners {
