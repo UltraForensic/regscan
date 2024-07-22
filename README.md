@@ -24,12 +24,12 @@ But you may try it out by running or building binary by your own.
 
 Following result files will be generated under the specified output directory (using `-o` or `--outdir`):
 
-- `TIMESTAMP_regscan_ASEPs.tsv`
+- `[TIMESTAMP]_regscan_ASEPs.tsv`
     - Check for possible malware ASEP entries
-- `TIMESTAMP_regscan_SystemInfo.tsv`
+- `[TIMESTAMP]_regscan_SystemInfo.tsv`
     - Check for system information of target system
-- `TIMESTAMP_regscan_Timeline.tsv`
-    - Check for any suspicious or interesting indicator that has been detected
+- `[TIMESTAMP]_regscan_Timeline.tsv`
+    - Check for any suspicious or interesting indicator that has been detected in timeline format
 
 ## Contribution
 
