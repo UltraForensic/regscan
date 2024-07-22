@@ -1,6 +1,7 @@
 mod scanner;
 mod util;
 
+use chrono::Utc;
 use clap::Parser;
 use std::fs;
 use std::fs::File;
@@ -8,27 +9,31 @@ use std::io::Write;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[derive(Debug, Parser)]
+#[derive(Parser)]
 struct Args {
-    #[arg(short = 'd', long = "dir", help = "Target directory containing registry hive and transaction log files to process.")]
+    #[arg(short, long, help = "Target directory containing registry hive and transaction log files to process.")]
     target: String,
-    #[arg(short, long, help = "File name to save TSV formatted results to.")]
-    tsv: String,
-    #[arg(short, long, help = "Disable automatic filter on some rule (eg. services) and output all results")]
+    #[arg(short, long, help = "Output directory to save TSV formatted timeline_results to.")]
+    outdir: String,
+    #[arg(short, long, help = "Disable automatic filter on some rule (eg. services) and output all timeline_results")]
     noisy: bool,
     #[arg(short, long, help = "Recover deleted entry and analyze (this option might need extra time to process).")]
-    recover: bool,
-    #[arg(short, long, help = "Output the results also to the standard output.")]
-    stdout: bool,
+    recover: bool
 }
 
 fn main() {
     let args = Args::parse();
-    let mut results: Vec<String> = Vec::new();
+
+    // Results
+    let mut timeline_results: Vec<String> = Vec::new();
+    let mut asep_results: Vec<String> = Vec::new();
+    let mut systeminfo: Vec<String> = Vec::new();
 
     println!("[!] regscan v{} started", VERSION);
+    let timestamp_str = Utc::now().format("%Y%m%d%H%M%S%Z").to_string();
 
-    results.push(String::from("Rule name\tDetail\tHive\tKey\tLast write timestamp of the key"));
+    timeline_results.push(String::from("Rule name\tDetail\tHive\tKey\tTimestamp"));
+    asep_results.push(String::from("Rule name\tPath\tHive\tKey\tValue\tLast write timestamp of the key\tRemarks"));
 
     let target_files = fs::read_dir(args.target).unwrap();
     for entry in target_files {
@@ -41,8 +46,8 @@ fn main() {
                         println!("[*] Loaded {} as a SYSTEM hive", f);
 
                         let basic_info = scanner::system::initial::get_basic_info(&mut parser);
-                        println!("[!] ComputerName: {}", basic_info[0]);
-                        println!("[!] TimeZoneKeyName: {}", basic_info[1]);
+                        systeminfo.push(format!("ComputerName\t{}", basic_info[0]));
+                        systeminfo.push(format!("TimeZoneKeyName\t{}", basic_info[1]));
 
                         let mut controlsets = Vec::new();
                         match parser.get_key("ControlSet001", false).unwrap() {
@@ -58,20 +63,24 @@ fn main() {
                             None => {}
                         }
 
-                        let scanners = [
-                            scanner::system::wdigest::scan,
-                            scanner::system::portproxy::scan
+                        let timeline_scanners = [
+                            scanner::system::wdigest::generate_timeline,
+                            scanner::system::portproxy::generate_timeline
                         ];
         
                         for controlset in controlsets {
-                            for s in scanners {
+                            for s in timeline_scanners {
                                 match s(&mut parser, &f, controlset) {
-                                    Some(t) => { results.push(t); },
+                                    Some(t) => { timeline_results.push(t); },
                                     None => {}
                                 }
                             }
-                            match scanner::system::services::scan(&mut parser, &f, controlset, args.noisy) {
-                                Some(t) => { results.push(t); },
+                            match scanner::system::services::generate_timeline(&mut parser, &f, controlset, args.noisy) {
+                                Some(t) => { timeline_results.push(t); },
+                                None => {}
+                            }
+                            match scanner::system::services::get_asep(&mut parser, &f, controlset, args.noisy) {
+                                Some(t) => { asep_results.push(t); },
                                 None => {}
                             }
                         }
@@ -79,23 +88,31 @@ fn main() {
                         println!("[*] Loaded {} as a SOFTWARE hive", f);
 
                         let basic_info = scanner::software::initial::get_basic_info(&mut parser);
-                        println!("[!] ProductName: {}", basic_info[0]);
-                        println!("[!] DisplayVersion: {}", basic_info[1]);
-                        println!("[!] Version: {}.{}.{}", basic_info[2], basic_info[3], basic_info[4]);
-                        println!("[!] BuildLabEx: {}", basic_info[5]);
-                        println!("[!] RegisteredOrganization: {}", basic_info[6]);
-                        println!("[!] RegisteredOwner: {}", basic_info[7]);
+                        systeminfo.push(format!("ProductName\t{}", basic_info[0]));
+                        systeminfo.push(format!("DisplayVersion\t{}", basic_info[1]));
+                        systeminfo.push(format!("Version\t{}.{}.{}", basic_info[2], basic_info[3], basic_info[4]));
+                        systeminfo.push(format!("BuildLabEx\t{}", basic_info[5]));
+                        systeminfo.push(format!("RegisteredOrganization\t{}", basic_info[6]));
+                        systeminfo.push(format!("RegisteredOwner\t{}", basic_info[7]));
                         
-                        let scanners = [
-                            scanner::software::software_gpohistory::scan,
-                            scanner::software::software_run::scan,
-                            scanner::software::defender::scan,
-                            scanner::software::taskcache::scan
+                        let timeline_scanners = [
+                            scanner::software::software_gpohistory::generate_timeline,
+                            scanner::software::defender::generate_timeline,
+                            scanner::software::taskcache::generate_timeline
+                        ];
+                        let asep_scanners = [
+                            scanner::software::software_run::get_asep
                         ];
 
-                        for s in scanners {
+                        for s in timeline_scanners {
                             match s(&mut parser, &f) {
-                                Some(t) => { results.push(t); },
+                                Some(t) => { timeline_results.push(t); },
+                                None => {}
+                            }
+                        }
+                        for s in asep_scanners {
+                            match s(&mut parser, &f) {
+                                Some(t) => { asep_results.push(t); },
                                 None => {}
                             }
                         }
@@ -110,17 +127,25 @@ fn main() {
                     } else if f.contains("NTUSER") {
                         println!("[*] Loaded {} as a NTUSER hive", f);
 
-                        let scanners = [
-                            scanner::ntuser::sysinternals::scan,
-                            scanner::ntuser::sevenzip::scan, 
-                            scanner::ntuser::ntuser_gpohistory::scan,
-                            scanner::ntuser::putty::scan,
-                            scanner::ntuser::ntuser_run::scan
+                        let timeline_scanners = [
+                            scanner::ntuser::sysinternals::generate_timeline,
+                            scanner::ntuser::sevenzip::generate_timeline, 
+                            scanner::ntuser::ntuser_gpohistory::generate_timeline,
+                            scanner::ntuser::putty::generate_timeline
+                        ];
+                        let asep_scanners = [
+                            scanner::ntuser::ntuser_run::get_asep
                         ];
 
-                        for s in scanners {
+                        for s in timeline_scanners {
                             match s(&mut parser, &f) {
-                                Some(t) => { results.push(t); },
+                                Some(t) => { timeline_results.push(t); },
+                                None => {}
+                            }
+                        }
+                        for s in asep_scanners {
+                            match s(&mut parser, &f) {
+                                Some(t) => { asep_results.push(t); },
                                 None => {}
                             }
                         }
@@ -139,26 +164,67 @@ fn main() {
         }
     }
 
-    match File::create(&args.tsv) {
-        Ok(mut f) => {
-            match writeln!(f, "{}", results.join("\n")) {
-                Ok(_t) => {
-                    println!("[+] Successfully analyzed registry hive files and saved results to {}", args.tsv);
+    // Output results under specified directory
+    match fs::create_dir_all(&args.outdir) {
+        Ok(_r) => {
+            let timeline_path = format!("{}/{}_regscan_Timeline.tsv", &args.outdir, timestamp_str);
+            match File::create(&timeline_path) {
+                Ok(mut f) => {
+                    match writeln!(f, "{}", timeline_results.join("\n")) {
+                        Ok(_t) => {
+                            println!("[+] Successfully saved timeline to {}", timeline_path);
+                        },
+                        Err(u) => {
+                            println!("[-] Failed to write timeline to {}", timeline_path);
+                            println!("[-] {}", u)
+                        }
+                    }
                 },
-                Err(u) => {
-                    println!("[-] Failed to write results to {}", args.tsv);
-                    println!("[-] {}", u)
+                Err(e) => {
+                    println!("[-] Failed to open file {}", timeline_path);
+                    println!("[-] {}", e)
+                }
+            }
+            let asep_path = format!("{}/{}_regscan_ASEPs.tsv", &args.outdir, timestamp_str);
+            match File::create(&asep_path) {
+                Ok(mut f) => {
+                    match writeln!(f, "{}", asep_results.join("\n")) {
+                        Ok(_t) => {
+                            println!("[+] Successfully saved ASEPs to {}", asep_path);
+                        },
+                        Err(u) => {
+                            println!("[-] Failed to write ASEPs to {}", asep_path);
+                            println!("[-] {}", u)
+                        }
+                    }
+                },
+                Err(e) => {
+                    println!("[-] Failed to open file {}", asep_path);
+                    println!("[-] {}", e)
+                }
+            }
+            let systeminfo_path = format!("{}/{}_regscan_SystemInfo.tsv", &args.outdir, timestamp_str);
+            match File::create(&systeminfo_path) {
+                Ok(mut f) => {
+                    match writeln!(f, "{}", systeminfo.join("\n")) {
+                        Ok(_t) => {
+                            println!("[+] Successfully saved system information to {}", systeminfo_path);
+                        },
+                        Err(u) => {
+                            println!("[-] Failed to write system information to {}", systeminfo_path);
+                            println!("[-] {}", u)
+                        }
+                    }
+                },
+                Err(e) => {
+                    println!("[-] Failed to open file {}", systeminfo_path);
+                    println!("[-] {}", e)
                 }
             }
         },
         Err(e) => {
-            println!("[-] Failed to open file {}", args.tsv);
+            println!("[-] Failed to create directory on {}", args.outdir);
             println!("[-] {}", e)
         }
-    }
-
-    if args.stdout {
-        println!("[*] Results:");
-        println!("{}", results.join("\n"));
     }
 }

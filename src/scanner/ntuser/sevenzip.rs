@@ -1,6 +1,6 @@
 use notatin::{parser::Parser, util::get_date_time_from_filetime};
 
-pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
+pub fn generate_timeline(parser: &mut Parser, target: &String) ->  Option<String> {
     let key_path_list = ["Software\\7-Zip", "Software\\Wow6432Node\\7-Zip"];
     let mut results: Vec<String> = Vec::new();
 

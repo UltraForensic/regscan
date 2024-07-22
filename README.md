@@ -7,19 +7,29 @@ Windows registry file scanner for fast forensics
 Download latest Windows executable binary from [Releases](https://github.com/UltraForensic/regscan/releases) page and follow the usage below.
 
 ```
-Usage: regscan.exe [OPTIONS] --dir <TARGET> --tsv <TSV>
+Usage: regscan.exe [OPTIONS] --target <TARGET> --outdir <OUTDIR>
 
 Options:
-  -d, --dir <TARGET>  Target directory containing registry hive and transaction log files to process.
-  -t, --tsv <TSV>     File name to save TSV formatted results to.
-  -n, --noisy         Disable automatic filter on some rule (eg. services) and output all results
-  -r, --recover       Recover deleted entry and analyze (this option might need extra time to process).
-  -s, --stdout        Output the results also to the standard output.
-  -h, --help          Print help
+  -t, --target <TARGET>  Target directory containing registry hive and transaction log files to process.
+  -o, --outdir <OUTDIR>  Output directory to save TSV formatted timeline_results to.
+  -n, --noisy            Disable automatic filter on some rule (eg. services) and output all timeline_results
+  -r, --recover          Recover deleted entry and analyze (this option might need extra time to process).
+  -h, --help             Print help
 ```
 
 I have not tested if this tool works properly on Linux or macOS platform.
 But you may try it out by running or building binary by your own.
+
+## How to read the result
+
+Following result files will be generated under the specified directory (using `-o` or `--outdir`):
+
+- `TIMESTAMP_regscan_ASEPs.tsv`
+    - Check for possible malware ASEP entries
+- `TIMESTAMP_regscan_SystemInfo.tsv`
+    - Check for system information of target system
+- `TIMESTAMP_regscan_Timeline.tsv`
+    - Check for any suspicious or interesting indicator that has been detected
 
 ## Contribution
 

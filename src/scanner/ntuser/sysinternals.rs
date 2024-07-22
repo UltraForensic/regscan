@@ -1,6 +1,6 @@
 use notatin::{parser::Parser, util::get_date_time_from_filetime};
 
-pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
+pub fn generate_timeline(parser: &mut Parser, target: &String) ->  Option<String> {
     let key_path = "Software\\SysInternals";
     match parser.get_key(&key_path, false) {
         Ok(r) => {

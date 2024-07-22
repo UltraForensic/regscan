@@ -1,6 +1,6 @@
 use notatin::{parser::Parser, cell_value::CellValue, util::get_date_time_from_filetime};
 
-pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
+pub fn generate_timeline(parser: &mut Parser, target: &String) ->  Option<String> {
     let key_path = "Microsoft\\Windows Defender";
 
     match parser.get_key(&key_path, false) {
@@ -15,7 +15,7 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                             for ssk in subsub_keys {
                                 let last_key_write_timestamp = get_date_time_from_filetime(ssk.detail.last_key_written_date_and_time());
                                 for v in ssk.value_iter() {
-                                    results.push(format!("defender\tWindows Defender {} exclusion setting found: \"{}\"\t{}\t{}\t{}", ssk.key_name, v.detail.value_name(), target, key_path, last_key_write_timestamp));
+                                    results.push(format!("defender\tWindows Defender {} exclusion setting is set: \"{}\"\t{}\t{}\t{}", ssk.key_name, v.detail.value_name(), target, key_path, last_key_write_timestamp));
                                 }
                             }
                         },
@@ -28,8 +28,8 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                             match sub_key.get_value("TamperProtection") {
                                 Some(v) => {
                                     match v.get_content().0 {
-                                        CellValue::U32(0) => { results.push(format!("defender\tWindows Defender Tamper Protection is disabled (TamperProtection={})\t{}\t{}\t{}", v.get_content().0, target, key_path, last_key_write_timestamp)); },
-                                        CellValue::U32(4) => { results.push(format!("defender\tWindows Defender Tamper Protection and Cloud Protection is disabled (TamperProtection={})\t{}\t{}\t{}", v.get_content().0, target, key_path, last_key_write_timestamp)); }
+                                        CellValue::U32(0) => { results.push(format!("defender\tWindows Defender Tamper Protection has been disabled (TamperProtection={})\t{}\t{}\t{}", v.get_content().0, target, key_path, last_key_write_timestamp)); },
+                                        CellValue::U32(4) => { results.push(format!("defender\tWindows Defender Tamper Protection and Cloud Protection have been disabled (TamperProtection={})\t{}\t{}\t{}", v.get_content().0, target, key_path, last_key_write_timestamp)); }
                                         _ => {}
                                     }
                                 },
@@ -65,7 +65,7 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                                                     match v.get_content().0 {
                                                         CellValue::U32(i) => {
                                                             if i != 0 {
-                                                                results.push(format!("defender\t{} = {}\t{}\t{}\t{}", sv, i, target, pp, last_key_write_timestamp));
+                                                                results.push(format!("defender\t{} is set to {}\t{}\t{}\t{}", sv, i, target, pp, last_key_write_timestamp));
                                                             }
                                                         },
                                                         _ => {}
@@ -93,7 +93,7 @@ pub fn scan(parser: &mut Parser, target: &String) ->  Option<String> {
                                             if v.get_content().0 == CellValue::U32(1) {
                                                 results.push(format!("defender\tReal-Time Protection is disabled\t{}\t{}\t{}", target, rtprotection_path, last_key_write_timestamp));
                                             } else {
-                                                results.push(format!("defender\tDisableRealtimeMonitoring = {} (Real-Time Protection may have been disabled previously)\t{}\t{}\t{}", v.get_content().0, target, rtprotection_path, last_key_write_timestamp));
+                                                results.push(format!("defender\tDisableRealtimeMonitoring is set to {} (Real-Time Protection may have been disabled previously)\t{}\t{}\t{}", v.get_content().0, target, rtprotection_path, last_key_write_timestamp));
                                             }
                                         },
                                         None => {}

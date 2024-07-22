@@ -4,5 +4,6 @@ version = "0.3.4"
 edition = "2021"
 
 [dependencies]
+chrono = "0.4.38"
 clap = { version = "4.5.9", features = ["derive"] }
 notatin = "1.0.1"
