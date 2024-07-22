@@ -22,7 +22,7 @@ But you may try it out by running or building binary by your own.
 
 ## How to read the result
 
-Following result files will be generated under the specified directory (using `-o` or `--outdir`):
+Following result files will be generated under the specified output directory (using `-o` or `--outdir`):
 
 - `TIMESTAMP_regscan_ASEPs.tsv`
     - Check for possible malware ASEP entries
