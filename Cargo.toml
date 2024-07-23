@@ -4,6 +4,11 @@ version = "0.4.0"
 edition = "2021"
 
 [dependencies]
+aes = "0.8.4"
+arrayref = "0.3.8"
+cbc = { version = "0.1.2", features = ["alloc"] }
 chrono = "0.4.38"
 clap = { version = "4.5.9", features = ["derive"] }
+easydes = "0.1.6"
+hex = "0.4.3"
 notatin = "1.0.1"

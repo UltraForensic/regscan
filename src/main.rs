@@ -3,6 +3,7 @@ mod util;
 
 use chrono::Utc;
 use clap::Parser;
+use hex;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -28,12 +29,17 @@ fn main() {
     let mut timeline_results: Vec<String> = Vec::new();
     let mut asep_results: Vec<String> = Vec::new();
     let mut systeminfo: Vec<String> = Vec::new();
+    let mut localaccounts: Vec<String> = Vec::new();
+
+    let mut bootkey: [u8; 16] = Default::default();
+    let mut sam_hive_path = String::from("");
 
     println!("[!] regscan v{} started", VERSION);
     let timestamp_str = Utc::now().format("%Y%m%d%H%M%S%Z").to_string();
 
     timeline_results.push(String::from("Rule name\tDetail\tHive\tKey\tTimestamp"));
     asep_results.push(String::from("Rule name\tPath\tHive\tKey\tValue\tLast write timestamp of the key\tRemarks"));
+    localaccounts.push(String::from("RID\tUsername\tFull Name\tComment\tUser Comment\tNTLM Hash"));
 
     let target_files = fs::read_dir(args.target).unwrap();
     for entry in target_files {
@@ -48,6 +54,14 @@ fn main() {
                         let basic_info = scanner::system::initial::get_basic_info(&mut parser);
                         systeminfo.push(format!("ComputerName\t{}", basic_info[0]));
                         systeminfo.push(format!("TimeZoneKeyName\t{}", basic_info[1]));
+
+                        match scanner::system::initial::get_bootkey(&mut parser, &f) {
+                            Some(b) => {
+                                bootkey = b;
+                                systeminfo.push(format!("Boot Key\t{}", hex::encode(bootkey)));
+                            },
+                            None => {}
+                        }
 
                         let mut controlsets = Vec::new();
                         match parser.get_key("ControlSet001", false).unwrap() {
@@ -125,7 +139,7 @@ fn main() {
                     } else if f.contains("Amcache") {
                         println!("[*] Loaded {} as a Amcache hive", f);
                     } else if f.contains("SAM") {
-                        println!("[*] Loaded {} as a SAM hive", f);
+                        sam_hive_path = f.clone();
                     } else if f.contains("SECURITY") {
                         println!("[*] Loaded {} as a SECURITY hive", f);
                     } else if f.contains("DEFAULT") {
@@ -168,6 +182,34 @@ fn main() {
                     println!("[-] Failed to load {}", f);
                     println!("[-] {}", e);
                 }
+            }
+        }
+    }
+
+    if sam_hive_path.len() != 0 {
+        match util::generate_hive_parser(&sam_hive_path, args.recover) {
+            Ok(mut parser) => {
+                println!("[*] Loaded {} as a SAM hive", sam_hive_path);
+                let rids = scanner::sam::get_rids(&mut parser);
+
+                match scanner::sam::get_syskey(&mut parser, bootkey) {
+                    Some(syskey) => {
+                        systeminfo.push(format!("SysKey\t{}", hex::encode(syskey)));
+                        for rid in rids {
+                            match scanner::sam::get_account_info(&mut parser, rid) {
+                                Some(t) => { localaccounts.push(t); },
+                                None => {}
+                            }
+                        }
+                    },
+                    None => {
+                        println!("[-] Failed to obtain syskey! Something is wrong :(");
+                    }
+                }
+            },
+            Err(e) => {
+                println!("[-] Failed to load {}", sam_hive_path);
+                println!("[-] {}", e);
             }
         }
     }
@@ -226,6 +268,24 @@ fn main() {
                 },
                 Err(e) => {
                     println!("[-] Failed to open file {}", systeminfo_path);
+                    println!("[-] {}", e)
+                }
+            }
+            let localaccounts_path = format!("{}/{}_regscan_LocalAccounts.tsv", &args.outdir, timestamp_str);
+            match File::create(&localaccounts_path) {
+                Ok(mut f) => {
+                    match writeln!(f, "{}", localaccounts.join("\n")) {
+                        Ok(_t) => {
+                            println!("[+] Successfully saved local accounts information to {}", localaccounts_path);
+                        },
+                        Err(u) => {
+                            println!("[-] Failed to write local accounts information to {}", localaccounts_path);
+                            println!("[-] {}", u)
+                        }
+                    }
+                },
+                Err(e) => {
+                    println!("[-] Failed to open file {}", localaccounts_path);
                     println!("[-] {}", e)
                 }
             }
