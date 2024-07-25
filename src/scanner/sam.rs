@@ -1,6 +1,7 @@
 use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, KeyIvInit};
+use chrono::Utc;
 use hex;
-use notatin::{parser::Parser, cell_value::CellValue};
+use notatin::{parser::Parser, cell_value::CellValue, util::get_date_time_from_filetime};
 use std::ffi::CString;
 use windows::Win32::Foundation::NTSTATUS;
 
@@ -35,7 +36,7 @@ struct FDATA {
     revision: u16,
     unknown1: u32,
     unknown2: u16,
-    creation_time: u64,
+    last_password_set_time: u64,
     domain_modified_count: u64,
     max_password_age: u64,
     min_password_age: u64,
@@ -54,6 +55,17 @@ struct FDATA {
     uas_compatibility_required: u32,
     unknown4: u32,
     data: [u8; 64]
+}
+
+#[repr(C, packed)]
+#[derive(Debug, Copy, Clone)]
+struct FUSERDATA {
+    unknown1: u64,
+    last_logon_time: u64,
+    unknown2: u64,
+    last_password_set_time: u64,
+    unknown3: u64,
+    last_incorrect_password_time: u64
 }
 
 #[repr(C, packed)]
@@ -210,21 +222,80 @@ pub fn get_account_info(parser: &mut Parser, rid: String, syskey: Vec<u8>) -> Op
     let akey = parser.get_key(&key_path, false).unwrap().unwrap();
     let rid_num = u32::from_be_bytes(hex::decode(rid).unwrap().try_into().unwrap());
 
+    let mut reset_data = String::new();
+
+    let mut last_logon_time = Utc::now();
+    let mut last_password_set_time = Utc::now();
+    let mut last_incorrect_password_time = Utc::now();
+
+    match akey.get_value("ResetData") {
+        Some(v) => {
+            match v.get_content().0 {
+                CellValue::Binary(f) => {
+                    let reset_data_packets = f
+                        .chunks(2)
+                        .map(|e| u16::from_le_bytes(e.try_into().unwrap()))
+                        .collect::<Vec<_>>();
+                    reset_data = String::from_utf16_lossy(&reset_data_packets);
+                },
+                _ => {
+                    println!("[-] Failed to read value ResetData under Domains\\Account key");
+                }
+            }
+        },
+        None => {}
+    }
+
+    match akey.get_value("F").unwrap().get_content().0 {
+        CellValue::Binary(f) => {
+            let fuserdata: FUSERDATA = unsafe { std::ptr::read(f.as_ptr() as *const _) };
+            last_logon_time = get_date_time_from_filetime(fuserdata.last_logon_time);
+            last_password_set_time = get_date_time_from_filetime(fuserdata.last_password_set_time);
+            last_incorrect_password_time = get_date_time_from_filetime(fuserdata.last_incorrect_password_time);
+        },
+        _ => {
+            println!("[-] Failed to read value F under Domains\\Account key");
+        }
+    }
+
     match akey.get_value("V").unwrap().get_content().0 {
         CellValue::Binary(v) => {
             let vdata: VDATA = unsafe { std::ptr::read(v.as_ptr() as *const _) };
             let idata = v[204..].to_vec();
 
+            // Get LM hash
+            let mut start_offset = vdata.lm_hash.offset as usize;
+            let mut end_offset = start_offset + vdata.lm_hash.length as usize;
+            let mut sam_hash: SAMHash = unsafe { std::ptr::read(idata[start_offset..end_offset].to_vec().as_ptr() as *const _) };
+            let lm_hash = get_ntlm_hash(vdata.lm_hash, sam_hash, syskey.clone(), rid_num);
+
             // Get NTLM hash
-            let mut start_offset = vdata.ntlm_hash.offset as usize;
-            let mut end_offset = start_offset + vdata.ntlm_hash.length as usize;
-            let sam_hash: SAMHash = unsafe { std::ptr::read(idata[start_offset..end_offset].to_vec().as_ptr() as *const _) };
-            let ntlm_hash = get_ntlm_hash(vdata.ntlm_hash, sam_hash, syskey, rid_num);
+            start_offset = vdata.ntlm_hash.offset as usize;
+            end_offset = start_offset + vdata.ntlm_hash.length as usize;
+            sam_hash = unsafe { std::ptr::read(idata[start_offset..end_offset].to_vec().as_ptr() as *const _) };
+            let ntlm_hash = get_ntlm_hash(vdata.ntlm_hash, sam_hash, syskey.clone(), rid_num);
+
+            // Get LM hash history
+            start_offset = vdata.lm_history.offset as usize;
+            end_offset = start_offset + vdata.lm_history.length as usize;
+            sam_hash = unsafe { std::ptr::read(idata[start_offset..end_offset].to_vec().as_ptr() as *const _) };
+            let lm_history = get_ntlm_hash(vdata.lm_history, sam_hash, syskey.clone(), rid_num);
+
+            // Get NTLM hash history
+            start_offset = vdata.ntlm_history.offset as usize;
+            end_offset = start_offset + vdata.ntlm_history.length as usize;
+            sam_hash = unsafe { std::ptr::read(idata[start_offset..end_offset].to_vec().as_ptr() as *const _) };
+            let ntlm_history = get_ntlm_hash(vdata.ntlm_history, sam_hash, syskey.clone(), rid_num);
 
             // Get username
             start_offset = vdata.username.offset as usize;
             end_offset = start_offset + vdata.username.length as usize;
-            let username = String::from_utf8(idata[start_offset..end_offset].to_vec()).unwrap();
+            let username_base = idata[start_offset..end_offset].to_vec();
+            let username_packets = username_base
+                .chunks(2)
+                .map(|e| u16::from_le_bytes(e.try_into().unwrap()))
+                .collect::<Vec<_>>();
+            let username = String::from_utf16_lossy(&username_packets);
 
             // Get fullname
             start_offset = vdata.fullname.offset as usize;
@@ -241,10 +312,24 @@ pub fn get_account_info(parser: &mut Parser, rid: String, syskey: Vec<u8>) -> Op
             end_offset = start_offset + vdata.user_comment.length as usize;
             let user_comment = String::from_utf8(idata[start_offset..end_offset].to_vec()).unwrap();
 
-            results.push(format!("{}\t{}\t{}\t{}\t{}\t{}", rid_num, username, fullname, comment, user_comment, ntlm_hash.join(":"))); // put back ntlm hash
+            // Get creation time of user
+            let creation_time_str = match parser.get_key(&format!("SAM\\Domains\\Account\\Users\\Names\\{}", username), false).unwrap() {
+                Some(k) => {
+                    format!("{}", get_date_time_from_filetime(k.detail.last_key_written_date_and_time()))
+                },
+                None => String::from("-")
+            };
+
+            results.push(format!(
+                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}", 
+                rid_num, username, creation_time_str, last_logon_time, last_password_set_time, last_incorrect_password_time, fullname, comment, user_comment,
+                lm_hash.join(":"), ntlm_hash.join(":"), 
+                lm_history.join(", "), ntlm_history.join(", "), 
+                reset_data
+            ));
         },
         _ => {
-            println!("[-] Failed to read value F under Domains\\Account key");
+            println!("[-] Failed to read value V under Domains\\Account key");
         }
     }
 

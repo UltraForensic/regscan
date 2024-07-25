@@ -62,7 +62,7 @@ fn main() {
 
     timeline_results.push(String::from("Rule name\tDetail\tHive\tKey\tTimestamp"));
     asep_results.push(String::from("Rule name\tPath\tHive\tKey\tValue\tLast write timestamp of the key\tRemarks"));
-    localaccounts.push(String::from("RID\tUsername\tFull Name\tComment\tUser Comment\tNTLM Hash"));
+    localaccounts.push(String::from("RID\tUsername\tCreation Time\tLast Logon Time\tLast Password Set Time\tLast Incorrect Password Time\tFull Name\tComment\tUser Comment\tLM Hash\tNTLM Hash\tLM Hash History\tNTLM Hash History\tReset Data"));
 
     let target_files = fs::read_dir(args.target).unwrap();
     for entry in target_files {
