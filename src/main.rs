@@ -72,7 +72,7 @@ fn main() {
         if !(f.contains(".LOG") || fs::metadata(&f).unwrap().is_dir()) {
             match util::generate_hive_parser(&f, args.recover) {
                 Ok(mut parser) => {
-                    if f.contains("SYSTEM") {
+                    if f.ends_with("SYSTEM") {
                         println!("[*] Loaded {} as a SYSTEM hive", f);
 
                         let basic_info = scanner::system::initial::get_basic_info(&mut parser);
@@ -122,7 +122,7 @@ fn main() {
                             Some(t) => { systeminfo.push(t); },
                             None => {}
                         }
-                    } else if f.contains("SOFTWARE") {
+                    } else if f.ends_with("SOFTWARE") {
                         println!("[*] Loaded {} as a SOFTWARE hive", f);
 
                         let basic_info = scanner::software::initial::get_basic_info(&mut parser);
@@ -156,13 +156,13 @@ fn main() {
                                 None => {}
                             }
                         }
-                    } else if f.contains("Amcache") {
+                    } else if f.ends_with("Amcache.hve") {
                         println!("[*] Loaded {} as a Amcache hive", f);
-                    } else if f.contains("SAM") {
+                    } else if f.ends_with("SAM") {
                         sam_hive_path = f.clone();
-                    } else if f.contains("SECURITY") {
+                    } else if f.ends_with("SECURITY") {
                         println!("[*] Loaded {} as a SECURITY hive", f);
-                    } else if f.contains("DEFAULT") {
+                    } else if f.ends_with("DEFAULT") {
                         println!("[*] Loaded {} as a DEFAULT hive", f);
                     } else if f.contains("NTUSER") {
                         println!("[*] Loaded {} as a NTUSER hive", f);

@@ -61,7 +61,7 @@ pub fn get_asep(parser: &mut Parser, target: &String, controlset: u32, noisy: bo
         Ok(r) => {
             match r {
                 Some(mut key) => {
-                    for skey in key.read_sub_keys(parser) {
+                    for mut skey in key.read_sub_keys(parser) {
                         let last_key_write_timestamp = get_date_time_from_filetime(skey.detail.last_key_written_date_and_time());
                         let imagepath = match skey.get_value("ImagePath") {
                             Some(v) => {
@@ -124,8 +124,25 @@ pub fn get_asep(parser: &mut Parser, target: &String, controlset: u32, noisy: bo
                             },
                             None => "Unknown"
                         };
-                        if noisy || (servicetype.contains("Win32OwnProcess") && starttype == "Automatic") {
-                            results.push(format!("services\t{}\t{}\t{}\\{}\tImagePath\t{}\tType: \"{}\", Start: \"{}\", Description: \"{}\"", imagepath, target, key_path, skey.key_name, last_key_write_timestamp, servicetype, starttype, description));
+                        let servicedll = match skey.get_sub_key_by_path(parser, "Parameters") {
+                            Some(pk) => {
+                                match pk.get_value("ServiceDll") {
+                                    Some(v) => {
+                                        match v.get_content().0 {
+                                            CellValue::String(s) => {
+                                                &s.clone()
+                                            },
+                                            _ => "None"
+                                        }
+                                    },
+                                    None => "None"
+                                }
+                            },
+                            None => "None"
+                        };
+
+                        if (noisy || servicetype.contains("Win32OwnProcess")) && starttype == "Automatic" {
+                            results.push(format!("services\t{}\t{}\t{}\\{}\tImagePath\t{}\tType: \"{}\", Start: \"{}\", Description: \"{}\", ServiceDll: \"{}\"", imagepath, target, key_path, skey.key_name, last_key_write_timestamp, servicetype, starttype, description, servicedll));
                         }
                     }
 
