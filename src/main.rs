@@ -22,6 +22,27 @@ struct Args {
     recover: bool
 }
 
+fn save_results(outdir: &String, timestamp_str: &String, client_name: &String, results_type: &str, results: Vec<String>) {
+    let results_path = format!("{}/{}_{}_{}.tsv", outdir, timestamp_str, client_name, results_type);
+    match File::create(&results_path) {
+        Ok(mut f) => {
+            match writeln!(f, "{}", results.join("\n")) {
+                Ok(_t) => {
+                    println!("[+] Successfully saved timeline to {}", results_path);
+                },
+                Err(u) => {
+                    println!("[-] Failed to write timeline to {}", results_path);
+                    println!("[-] {}", u)
+                }
+            }
+        },
+        Err(e) => {
+            println!("[-] Failed to open file {}", results_path);
+            println!("[-] {}", e)
+        }
+    }
+}
+
 fn main() {
     let args = Args::parse();
 
@@ -30,6 +51,8 @@ fn main() {
     let mut asep_results: Vec<String> = Vec::new();
     let mut systeminfo: Vec<String> = Vec::new();
     let mut localaccounts: Vec<String> = Vec::new();
+
+    let mut client_name: String = String::from("regscan");
 
     let mut bootkey: [u8; 16] = Default::default();
     let mut sam_hive_path = String::from("");
@@ -54,6 +77,7 @@ fn main() {
                         let basic_info = scanner::system::initial::get_basic_info(&mut parser);
                         systeminfo.push(format!("ComputerName\t{}", basic_info[0]));
                         systeminfo.push(format!("TimeZoneKeyName\t{}", basic_info[1]));
+                        client_name = basic_info[0].clone();
 
                         match scanner::system::initial::get_bootkey(&mut parser, &f) {
                             Some(b) => {
@@ -194,9 +218,9 @@ fn main() {
 
                 match scanner::sam::get_syskey(&mut parser, bootkey) {
                     Some(syskey) => {
-                        systeminfo.push(format!("SysKey\t{}", hex::encode(syskey)));
+                        systeminfo.push(format!("SysKey\t{}", hex::encode(syskey.clone())));
                         for rid in rids {
-                            match scanner::sam::get_account_info(&mut parser, rid) {
+                            match scanner::sam::get_account_info(&mut parser, rid, syskey.clone()) {
                                 Some(t) => { localaccounts.push(t); },
                                 None => {}
                             }
@@ -217,78 +241,10 @@ fn main() {
     // Output results under specified directory
     match fs::create_dir_all(&args.outdir) {
         Ok(_r) => {
-            let timeline_path = format!("{}/{}_regscan_Timeline.tsv", &args.outdir, timestamp_str);
-            match File::create(&timeline_path) {
-                Ok(mut f) => {
-                    match writeln!(f, "{}", timeline_results.join("\n")) {
-                        Ok(_t) => {
-                            println!("[+] Successfully saved timeline to {}", timeline_path);
-                        },
-                        Err(u) => {
-                            println!("[-] Failed to write timeline to {}", timeline_path);
-                            println!("[-] {}", u)
-                        }
-                    }
-                },
-                Err(e) => {
-                    println!("[-] Failed to open file {}", timeline_path);
-                    println!("[-] {}", e)
-                }
-            }
-            let asep_path = format!("{}/{}_regscan_ASEPs.tsv", &args.outdir, timestamp_str);
-            match File::create(&asep_path) {
-                Ok(mut f) => {
-                    match writeln!(f, "{}", asep_results.join("\n")) {
-                        Ok(_t) => {
-                            println!("[+] Successfully saved ASEPs to {}", asep_path);
-                        },
-                        Err(u) => {
-                            println!("[-] Failed to write ASEPs to {}", asep_path);
-                            println!("[-] {}", u)
-                        }
-                    }
-                },
-                Err(e) => {
-                    println!("[-] Failed to open file {}", asep_path);
-                    println!("[-] {}", e)
-                }
-            }
-            let systeminfo_path = format!("{}/{}_regscan_SystemInfo.tsv", &args.outdir, timestamp_str);
-            match File::create(&systeminfo_path) {
-                Ok(mut f) => {
-                    match writeln!(f, "{}", systeminfo.join("\n")) {
-                        Ok(_t) => {
-                            println!("[+] Successfully saved system information to {}", systeminfo_path);
-                        },
-                        Err(u) => {
-                            println!("[-] Failed to write system information to {}", systeminfo_path);
-                            println!("[-] {}", u)
-                        }
-                    }
-                },
-                Err(e) => {
-                    println!("[-] Failed to open file {}", systeminfo_path);
-                    println!("[-] {}", e)
-                }
-            }
-            let localaccounts_path = format!("{}/{}_regscan_LocalAccounts.tsv", &args.outdir, timestamp_str);
-            match File::create(&localaccounts_path) {
-                Ok(mut f) => {
-                    match writeln!(f, "{}", localaccounts.join("\n")) {
-                        Ok(_t) => {
-                            println!("[+] Successfully saved local accounts information to {}", localaccounts_path);
-                        },
-                        Err(u) => {
-                            println!("[-] Failed to write local accounts information to {}", localaccounts_path);
-                            println!("[-] {}", u)
-                        }
-                    }
-                },
-                Err(e) => {
-                    println!("[-] Failed to open file {}", localaccounts_path);
-                    println!("[-] {}", e)
-                }
-            }
+            save_results(&args.outdir, &timestamp_str, &client_name, "Timeline", timeline_results);
+            save_results(&args.outdir, &timestamp_str, &client_name, "ASEPs", asep_results);
+            save_results(&args.outdir, &timestamp_str, &client_name, "SystemInfo", systeminfo);
+            save_results(&args.outdir, &timestamp_str, &client_name, "LocalAccounts", localaccounts);
         },
         Err(e) => {
             println!("[-] Failed to create directory on {}", args.outdir);

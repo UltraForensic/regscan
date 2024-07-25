@@ -17,18 +17,19 @@ Options:
   -h, --help             Print help
 ```
 
-I have not tested if this tool works properly on Linux or macOS platform.
-But you may try it out by running or building binary by your own.
+**This tool does not support non-Windows platform (such as macOS/Linux) because it uses Windows native API to decrypt some data inside SAM hive.**
 
 ## How to read the result
 
 Following result files will be generated under the specified output directory (using `-o` or `--outdir`):
 
-- `[TIMESTAMP]_regscan_ASEPs.tsv`
+- `[TIMESTAMP]_[COMPUTERNAME]_ASEPs.tsv`
     - Check for possible malware ASEP entries
-- `[TIMESTAMP]_regscan_SystemInfo.tsv`
+- `[TIMESTAMP]_[COMPUTERNAME]_LocalAccounts.tsv`
+    - Check for local accounts information on target system
+- `[TIMESTAMP]_[COMPUTERNAME]_SystemInfo.tsv`
     - Check for system information of target system
-- `[TIMESTAMP]_regscan_Timeline.tsv`
+- `[TIMESTAMP]_[COMPUTERNAME]_Timeline.tsv`
     - Check for any suspicious or interesting indicator that has been detected in timeline format
 
 ## Contribution

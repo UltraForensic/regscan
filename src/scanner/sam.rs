@@ -1,10 +1,25 @@
 use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, KeyIvInit};
-use easydes::easydes::{des_ecb, Des};
 use hex;
 use notatin::{parser::Parser, cell_value::CellValue};
+use std::ffi::CString;
+use windows::Win32::Foundation::NTSTATUS;
 
 // Get local account informations
 // Reference: https://github.com/C-Sto/gosecretsdump/blob/master/pkg/samreader/samreader.go
+
+
+#[link(name = "ntdll.dll", kind = "raw-dylib", modifiers = "+verbatim")]
+extern "system" {
+    pub fn SystemFunction027(EncryptedNtOwfPassword: *mut i8, Index: *mut u32, NtOwfPassword: *mut i8) -> NTSTATUS;
+}
+
+#[repr(C, packed)]
+#[derive(Debug, Copy, Clone)]
+struct SAMHash {
+    pekid: u16,
+    revision: u16,
+    data: [u8; 0x34]
+}
 
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
@@ -74,44 +89,77 @@ struct SamKeyDataAes {
     data: [u8; 32]
 }
 
+#[repr(C, packed)]
+#[derive(Debug, Copy, Clone)]
+struct SamHashAes {
+    pekid: u16,
+    revision: u16,
+    data_offset: u32,
+    salt: [u8; 16],
+    data: [u8; 32]
+}
+
 type Aes128CbcDec = cbc::Decryptor<aes::Aes128>;
 
-fn transform_key(in_key: [u8; 7]) -> [u8; 8] {
-    let mut result: [u8; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
-
-    result[0] = in_key[0] >> 0x01;
-    result[1] = ((in_key[0] & 0x01) << 6) | in_key[1] >> 2;
-	result[2] = ((in_key[1] & 0x03) << 5) | in_key[2] >> 3;
-	result[3] = ((in_key[2] & 0x07) << 4) | in_key[3] >> 4;
-	result[4] = ((in_key[3] & 0x0f) << 3) | in_key[4] >> 5;
-	result[5] = ((in_key[4] & 0x1f) << 2) | in_key[5] >> 6;
-	result[6] = ((in_key[5] & 0x3f) << 1) | in_key[6] >> 7;
-	result[7] = in_key[6] & 0x7f;
-
-	for i in 0..8 {
-		result[i] = (result[i] << 1) & 0xfe
-	}
-
-    result
+unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
+    ::core::slice::from_raw_parts(
+        (p as *const T) as *const u8,
+        ::core::mem::size_of::<T>(),
+    )
 }
 
-fn derive_key(base_key: u32) -> ([u8; 8], [u8; 8]) {
-    let k = base_key.to_le_bytes().to_vec();
+// ref: https://github.com/gentilkiwi/mimikatz/blob/master/mimikatz/modules/kuhl_m_lsadump.c#L412
+fn get_ntlm_hash(sam_entry: SAMEntry, hash: SAMHash, syskey: Vec<u8>, mut rid: u32) -> Vec<String> {
+    let mut hashes: Vec<String> = Vec::new();
 
-    let key1: [u8; 7] = [k[0], k[1], k[2], k[3], k[0], k[1], k[2]];
-    let key2: [u8; 7] = [k[3], k[0], k[1], k[2], k[3], k[0], k[1]];
+    let t = &syskey;
+    let syskey_array: &[u8] = &t;
+    let mut plaintext: Vec<u8> = Vec::new();
 
-    return (transform_key(key1), transform_key(key2));
-}
+    if sam_entry.offset != 0 && sam_entry.length != 0 {
+        let r = hash.revision;
 
-fn remove_des(data: Vec<u8>, rid: u32) -> Vec<u8> {
-    let (k1, k2) = derive_key(rid);
+        match r {
+            1 => {
+                println!("[-] Currently, SAMHash revision {} is not supported", r);
+                return hashes;
+            },
+            2 => {
+                let hash_bytes = unsafe { any_as_u8_slice(&hash).to_vec() };
+                let hash_aes: SamHashAes = unsafe { std::ptr::read(hash_bytes.as_ptr() as *const _) };
 
-    let mut p1 = des_ecb(&k1, &mut data[..8].to_vec(), Des::Decrypt);
-    let mut p2 = des_ecb(&k2, &mut data[8..].to_vec(), Des::Decrypt);
-    p1.append(&mut p2);
+                if hash_aes.data_offset >= 16 {
+                    let decryptor = Aes128CbcDec::new(syskey_array.into(), &hash_aes.salt.into());
+                    plaintext = decryptor
+                        .decrypt_padded_vec_mut::<Pkcs7>(&hash_aes.data)
+                        .unwrap();
+                } else {
+                    return hashes;
+                }
+            },
+            _ => {
+                println!("[-] Unknown SAMHash revision: {}", r);
+                return hashes;
+            }
+        }
+    } else {
+        return hashes;
+    }
 
-    p1
+    let ntlm_hash = CString::new("0000000000000000").unwrap().into_raw();
+    for i in (0..plaintext.len()).step_by(16) {
+        unsafe {
+            let original_data = CString::new(plaintext.clone()).unwrap().into_raw().wrapping_add(i);
+            if SystemFunction027(original_data, &mut rid, ntlm_hash).is_ok() {
+                let ntlm_hash_str = hex::encode(CString::from_raw(ntlm_hash).as_bytes());
+                hashes.push(ntlm_hash_str);
+            } else {
+                println!("[-] SystemFunction027 failed")
+            }
+        }
+    }
+
+    return hashes;
 }
 
 pub fn get_syskey(parser: &mut Parser, bootkey: [u8; 16]) ->  Option<Vec<u8>> {
@@ -155,7 +203,7 @@ pub fn get_rids(parser: &mut Parser) -> Vec<String> {
     rids
 }
 
-pub fn get_account_info(parser: &mut Parser, rid: String) -> Option<String> {
+pub fn get_account_info(parser: &mut Parser, rid: String, syskey: Vec<u8>) -> Option<String> {
     let mut results: Vec<String> = Vec::new();
 
     let key_path = format!("SAM\\Domains\\Account\\Users\\{}", rid);
@@ -170,7 +218,8 @@ pub fn get_account_info(parser: &mut Parser, rid: String) -> Option<String> {
             // Get NTLM hash
             let mut start_offset = vdata.ntlm_hash.offset as usize;
             let mut end_offset = start_offset + vdata.ntlm_hash.length as usize;
-            let ntlm_hash = hex::encode(remove_des(idata[start_offset..end_offset].to_vec(), rid_num));
+            let sam_hash: SAMHash = unsafe { std::ptr::read(idata[start_offset..end_offset].to_vec().as_ptr() as *const _) };
+            let ntlm_hash = get_ntlm_hash(vdata.ntlm_hash, sam_hash, syskey, rid_num);
 
             // Get username
             start_offset = vdata.username.offset as usize;
@@ -192,7 +241,7 @@ pub fn get_account_info(parser: &mut Parser, rid: String) -> Option<String> {
             end_offset = start_offset + vdata.user_comment.length as usize;
             let user_comment = String::from_utf8(idata[start_offset..end_offset].to_vec()).unwrap();
 
-            results.push(format!("{}\t{}\t{}\t{}\t{}\t{}", rid_num, username, fullname, comment, user_comment, ntlm_hash));
+            results.push(format!("{}\t{}\t{}\t{}\t{}\t{}", rid_num, username, fullname, comment, user_comment, ntlm_hash.join(":"))); // put back ntlm hash
         },
         _ => {
             println!("[-] Failed to read value F under Domains\\Account key");
