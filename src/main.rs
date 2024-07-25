@@ -29,10 +29,10 @@ fn save_results(outdir: &String, timestamp_str: &String, client_name: &String, r
         Ok(mut f) => {
             match writeln!(f, "{}", results.join("\n")) {
                 Ok(_t) => {
-                    println!("[+] Successfully saved timeline to {}", results_path);
+                    println!("[+] Successfully saved {} to {}", results_type, results_path);
                 },
                 Err(u) => {
-                    println!("[-] Failed to write timeline to {}", results_path);
+                    println!("[-] Failed to write {} to {}", results_type, results_path);
                     println!("[-] {}", u)
                 }
             }
