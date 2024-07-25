@@ -4,6 +4,7 @@ mod util;
 use chrono::Utc;
 use clap::Parser;
 use hex;
+use notatin::cell_value::CellValue;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -87,44 +88,39 @@ fn main() {
                             None => {}
                         }
 
-                        let mut controlsets = Vec::new();
-                        match parser.get_key("ControlSet001", false).unwrap() {
-                            Some(_t) => {
-                                controlsets.push(1);
+                        let controlset = match parser.get_key("Select", false).unwrap().unwrap().get_value("Current").unwrap().get_content().0 {
+                            CellValue::U32(i) => {
+                                systeminfo.push(format!("CurrentControlSet\t{}", i));
+                                i
                             },
-                            None => {}
-                        }
-                        match parser.get_key("ControlSet002", false).unwrap() {
-                            Some(_t) => {
-                                controlsets.push(2);
-                            },
-                            None => {}
-                        }
+                            _ => {
+                                println!("[-] Failed to read current controlset value from Select\\Current");
+                                continue;
+                            }
+                        };
 
                         let timeline_scanners = [
                             scanner::system::wdigest::generate_timeline,
                             scanner::system::portproxy::generate_timeline
                         ];
         
-                        for controlset in controlsets {
-                            for s in timeline_scanners {
-                                match s(&mut parser, &f, controlset) {
-                                    Some(t) => { timeline_results.push(t); },
-                                    None => {}
-                                }
-                            }
-                            match scanner::system::services::generate_timeline(&mut parser, &f, controlset, args.noisy) {
+                        for s in timeline_scanners {
+                            match s(&mut parser, &f, controlset) {
                                 Some(t) => { timeline_results.push(t); },
                                 None => {}
                             }
-                            match scanner::system::services::get_asep(&mut parser, &f, controlset, args.noisy) {
-                                Some(t) => { asep_results.push(t); },
-                                None => {}
-                            }
-                            match scanner::system::portproxy::get_portproxy(&mut parser, controlset) {
-                                Some(t) => { systeminfo.push(t); },
-                                None => {}
-                            }
+                        }
+                        match scanner::system::services::generate_timeline(&mut parser, &f, controlset, args.noisy) {
+                            Some(t) => { timeline_results.push(t); },
+                            None => {}
+                        }
+                        match scanner::system::services::get_asep(&mut parser, &f, controlset, args.noisy) {
+                            Some(t) => { asep_results.push(t); },
+                            None => {}
+                        }
+                        match scanner::system::portproxy::get_portproxy(&mut parser, controlset) {
+                            Some(t) => { systeminfo.push(t); },
+                            None => {}
                         }
                     } else if f.contains("SOFTWARE") {
                         println!("[*] Loaded {} as a SOFTWARE hive", f);
