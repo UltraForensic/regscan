@@ -17,7 +17,7 @@ pub fn generate_timeline(parser: &mut Parser, target: &String) ->  Option<String
                             let link = skey2.get_value("Link").unwrap().get_content().0;
                             let last_key_write_timestamp = get_date_time_from_filetime(skey.detail.last_key_written_date_and_time());
 
-                            results.push(format!("ntuser_gpohistory\tGPO history of \"{}\" has been generated (FileSysPath: \"{}\", Link: \"{}\")\t{}\t{}\t{}", displayname, filesyspath, link, target, key_path, last_key_write_timestamp));
+                            results.push(format!("ntuser_gpohistory\tGPO history of \"{}\" has been generated (FileSysPath: \"{}\", Link: \"{}\")\t{}\t{}\t{}", displayname, filesyspath, link, target, skey2.path, last_key_write_timestamp));
                         }
                     }
 

@@ -110,12 +110,12 @@ fn main() {
                                 None => {}
                             }
                         }
-                        match scanner::system::services::generate_timeline(&mut parser, &f, controlset, args.noisy) {
-                            Some(t) => { timeline_results.push(t); },
-                            None => {}
-                        }
-                        match scanner::system::services::get_asep(&mut parser, &f, controlset, args.noisy) {
-                            Some(t) => { asep_results.push(t); },
+                        match scanner::system::services::scan(&mut parser, &f, controlset, args.noisy) {
+                            Some(r) => {
+                                timeline_results.push(r.0);
+                                timeline_results.push(r.1);
+                                timeline_results.push(r.2);
+                            },
                             None => {}
                         }
                         match scanner::system::portproxy::get_portproxy(&mut parser, controlset) {
